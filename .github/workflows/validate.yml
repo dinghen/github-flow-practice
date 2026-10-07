@@ -1,0 +1,43 @@
+name: Exercise checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate exercise branch
+        env:
+          BRANCH_NAME: ${{ github.head_ref }}
+        run: |
+          case "$BRANCH_NAME" in
+            header|footer|content-container|top-section|bottom-section) ;;
+            *)
+              echo "Unsupported exercise branch: $BRANCH_NAME"
+              echo "Use header, footer, content-container, top-section, or bottom-section."
+              exit 1
+              ;;
+          esac
+
+      - name: Check required source files
+        run: |
+          test -f src/index.html
+          test -f src/styles.css
+
+      - name: Check whitespace errors
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch --no-tags origin "$BASE_REF"
+          git diff --check "origin/$BASE_REF...HEAD"
